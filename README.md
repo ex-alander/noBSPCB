@@ -73,7 +73,7 @@ MCD не требует кратного увеличения вычислите
 
 ---
 
-## Быстрый старт
+## Запуск
 
 ```bash
 git clone https://github.com/ex-alander/noBSPCB.git
@@ -119,7 +119,7 @@ noBSPCB/
 - базовые тесты (pytest)
 
 ---
-## Model
+## Модель
 
 Обученная модель доступна на Hugging Face Hub:  
 [oborxel/noBSPCB](https://huggingface.co/oborxel/noBSPCB)
