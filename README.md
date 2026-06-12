@@ -1,34 +1,130 @@
-# SureDefect — PCB Defect Detection with Uncertainty Estimation
+# noBSPCB
 
-**SureDefect** — hybrid system for PCB defect detection (missing hole, mouse bite, open circuit, short, spur, spurious copper) based on YOLOv8n and Monte Carlo Dropout.
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/ex-alander/noBSPCB/actions/workflows/ci.yml/badge.svg)](https://github.com/ex-alander/noBSPCB/actions/workflows/ci.yml)
 
-**Key result:** False positives reduced by **91.5%** (from 352 to 30) while maintaining Recall = 0.987.
+**noBSPCB** (No Bad Signals PCB) — детекция дефектов печатных плат с честной оценкой неопределённости.
 
-## Comparison with baseline
+На выходе — одна из двух меток для любой платы: `defect` — плата точно требует ручной проверки, `uncertain` — это скорее ложная тревога.
 
-| Metric | Baseline YOLOv8n | SureDefect (Hybrid MCD) |
-|--------|------------------|--------------------------|
+---
+
+## Датасет
+
+Используется открытый набор данных **PCB Defect** (Norbert Elter, Peking University):
+
+- 10 668 изображений
+- 6 классов дефектов: missing hole, mouse bite, open circuit, short, spur, spurious copper
+- Готовая разметка в формате YOLO
+- Разделение на train / val / test (8534 / 1066 / 1068)
+
+Датасет сбалансирован по классам (коэффициент вариации ~15%), около 22-25% изображений не содержат дефектов — это важно для обучения модели отличать годные платы.
+
+---
+
+## Проблема
+
+Автоматические оптические системы контроля (AOI) на производстве печатных плат настраивают гиперчувствительно, чтобы ничего не пропустить. В итоге они реагируют на царапины, перепады освещения или нестандартную текстуру паяльной маски.
+
+Статистика отраслевая: 70-90% сигналов тревоги — ложные.
+
+Что это значит на практике? Оператор сидит и перепроверяет заведомо годные платы, а затем устает и начинает пропускать реальный брак. Эффективность процесса значительно уменьшается.
+
+Современные нейросетевые детекторы (например, YOLOv8n, рассматриваемая в работе) на этом датасете показывают высокие результаты, но даже YOLO делает 352 ложных срабатывания на 1068 тестовых плат. Каждое такое срабатывание оператор проверяет вручную.
+
+---
+
+## Решение
+
+**noBSPCB** не просто находит дефекты. Она честно говорит, когда не уверена.
+
+Гибридный пайплайн:
+
+1. Быстрый прогон YOLOv8n (31 мс), проверяем все платы.
+2. Дефект найден? Запускаем Monte Carlo Dropout (30 прогонов).
+3. Считаем дисперсию уверенности. Если variance < 0.02 -> `defect`, иначе `uncertain`.
+
+Порог 0.02 подобран по распределению дисперсии на валидационной выборке.
+
+**Почему MCD, а не ансамбли или байесовские сети?**  
+MCD не требует кратного увеличения вычислительных ресурсов, не ломает архитектуру YOLO и даёт интерпретируемую метрику uncertainty (дисперсию confidence). При T=30 прогонов достигается баланс между точностью оценки (RMSE < 0.001) и временем инференса.
+
+---
+
+## Результаты
+
+| Метрика | Baseline YOLOv8n | noBSPCB (гибридный MCD) |
+|---------|------------------|-------------------------|
 | mAP@0.5 | 0.988 | 0.978 (-1.0%) |
 | False Positives | 352 | 30 (-91.5%) |
 | Recall | 0.987 | 0.987 |
-| Time per image (CPU) | 31 ms | 43 ms* |
+| Время (CPU) | 31 ms | 43 ms* |
 
-*\* Weighted average assuming 2% defective boards. MCD runs only when a defect is detected.*
+*Средневзвешенное при 2% дефектов. MCD запускается только на подозрительных платах.
 
-## Quick start
+Итак, ложных тревог стало на порядок меньше.
+
+**Что ещё внутри:**
+- Визуализация решений через EigenCAM (тепловые карты, наложение на исходное изображение)
+- Модуль приоритизации проверок оператора на основе variance
+- Полная воспроизводимость экспериментов (фиксированный seed, кастомное ядро Jupyter)
+
+---
+
+## Быстрый старт
 
 ```bash
-git clone https://github.com/your-username/suredefect.git
-cd suredefect
+git clone https://github.com/ex-alander/noBSPCB.git
+cd noBSPCB
 pip install -r requirements.txt
 jupyter lab notebooks/
 ```
 
-## License
+Готовые ноутбуки:
+- `baseline_training.ipynb` — обучение базовой модели
+- `mcd.ipynb` — MC Dropout инференс (запуск MCD на каждом примере для тестирования)
+- `hybrid_mcd.ipynb` — гибридный пайплайн
+- `visualization.ipynb` — тепловые карты и примеры
 
-MIT
+---
 
-## CI Status
+## Структура
 
-[![CI](https://github.com/your-username/suredefect/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/suredefect/actions/workflows/ci.yml)
+```
+noBSPCB/
+├── configs/           # YOLO архитектуры (baseline, dropout)
+├── src/               # mcd.py, model.py, utils.py, viz.py
+├── notebooks/         # Jupyter ноутбуки
+├── scripts/           # evaluate.py и утилиты
+├── tests/             # pytest (iou, cluster_boxes)
+├── .github/workflows/ # CI (black, isort, pytest)
+└── requirements.txt
+```
 
+---
+
+## Воспроизводимость
+
+Все эксперименты выполнены с фиксированным seed (42) и детерминированными настройками PyTorch. Локальное окружение изолировано в виртуальное окружение Python 3.9 с зависимостями из requirements.txt. Для ноутбуков зарегистрировано кастомное ядро Jupyter, привязанное к этому окружению.
+
+---
+
+## CI
+
+При каждом пуше GitHub Actions проверяет:
+- форматирование кода (black)
+- сортировку импортов (isort)
+- базовые тесты (pytest)
+
+---
+
+## Лицензия
+
+MIT. Полная свобода.
+
+---
+
+## Контакты
+
+Если есть вопросы, пишите на tg @oborxel.
