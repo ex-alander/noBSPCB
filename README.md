@@ -3,6 +3,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/ex-alander/noBSPCB/actions/workflows/ci.yml/badge.svg)](https://github.com/ex-alander/noBSPCB/actions/workflows/ci.yml)
+[![Hugging Face Model](https://img.shields.io/badge/🤗-Model-yellow)](https://huggingface.co/oborxel/noBSPCB)
 
 **noBSPCB** (No Bad Signals PCB) — детекция дефектов печатных плат с честной оценкой неопределённости.
 
@@ -118,6 +119,17 @@ noBSPCB/
 - базовые тесты (pytest)
 
 ---
+## Model
+
+Обученная модель доступна на Hugging Face Hub:  
+[oborxel/noBSPCB](https://huggingface.co/oborxel/noBSPCB)
+
+Её можно загрузить напрямую: 
+
+```python
+from ultralytics import YOLO
+model = YOLO("oborxel/noBSPCB")
+```
 
 ## Лицензия
 
