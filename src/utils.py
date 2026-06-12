@@ -1,7 +1,8 @@
-import cv2
-import torch
-import numpy as np
 from pathlib import Path
+
+import cv2
+import numpy as np
+import torch
 
 
 def load_image(path: Path, target_size: int = 640):

@@ -1,5 +1,6 @@
 import numpy as np
 from ultralytics import YOLO
+
 from src.mcd import mcd_predict_single
 
 # Экспериментально подобранный порог неопределённости

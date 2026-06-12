@@ -1,7 +1,8 @@
+import cv2
 import numpy as np
 import torch
-import cv2
 from ultralytics.utils.nms import non_max_suppression
+
 from src.utils import load_image, setup_device
 
 

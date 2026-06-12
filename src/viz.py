@@ -1,9 +1,10 @@
 import cv2
-import torch
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from pytorch_grad_cam import EigenCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image
+
 from src.utils import load_image
 
 
