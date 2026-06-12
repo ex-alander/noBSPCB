@@ -19,7 +19,7 @@ def test_iou():
     
     # Частичное перекрытие
     box3 = [5, 5, 15, 15]
-    assert 0.2 < iou(box1, box3) < 0.3
+    assert 0.11 < iou(box1, box3) < 0.17
 
 
 def test_cluster_boxes():
